@@ -6,7 +6,14 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NodeSSH } from 'node-ssh';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nocc-super-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET environment variable is not set!');
+  process.exit(1);
+}
+
+const FINAL_JWT_SECRET = JWT_SECRET || 'nocc-dev-secret-key';
 
 async function startServer() {
   const app = express();
@@ -16,8 +23,9 @@ async function startServer() {
   app.use(cors());
 
   // --- Mock Database for Auth (In a real app, use Firebase Auth or a DB) ---
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
   const users = [
-    { id: '1', email: 'admin@nocc.com', password: await bcrypt.hash('admin123', 10), role: 'admin' }
+    { id: '1', email: 'admin@nocc.com', password: await bcrypt.hash(ADMIN_PASSWORD, 10), role: 'admin' }
   ];
 
   // --- Auth Routes ---
@@ -25,7 +33,7 @@ async function startServer() {
     const { email, password } = req.body;
     const user = users.find(u => u.email === email);
     if (user && await bcrypt.compare(password, user.password)) {
-      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, FINAL_JWT_SECRET, { expiresIn: '24h' });
       return res.json({ token, user: { id: user.id, email: user.email, role: user.role } });
     }
     res.status(401).json({ error: 'Invalid credentials' });
@@ -36,7 +44,7 @@ async function startServer() {
     const { uid, email, displayName } = req.body;
     if (!uid) return res.status(400).json({ error: 'UID required' });
     
-    const token = jwt.sign({ id: uid, email, name: displayName, role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: uid, email, name: displayName, role: 'admin' }, FINAL_JWT_SECRET, { expiresIn: '24h' });
     res.json({ token });
   });
 
@@ -53,7 +61,7 @@ async function startServer() {
       return next();
     }
 
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    jwt.verify(token, FINAL_JWT_SECRET, (err: any, user: any) => {
       if (err) return res.sendStatus(403);
       req.user = user;
       next();
