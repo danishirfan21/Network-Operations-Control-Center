@@ -163,7 +163,6 @@ export default function App() {
           setSessionToken(data.token);
         } catch (err) {
           console.error("Failed to get session token:", err);
-          setSessionToken('demo-token'); // Fallback
         }
       }
       setLoading(false);

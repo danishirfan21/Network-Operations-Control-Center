@@ -16,6 +16,9 @@ if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
 const FINAL_JWT_SECRET = JWT_SECRET || 'nocc-dev-secret-key';
 
 async function startServer() {
+  if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is not set!');
+  }
   const app = express();
   const PORT = 3000;
 
@@ -23,9 +26,12 @@ async function startServer() {
   app.use(cors());
 
   // --- Mock Database for Auth (In a real app, use Firebase Auth or a DB) ---
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  if (!ADMIN_PASSWORD && process.env.NODE_ENV === 'production') {
+    throw new Error('ADMIN_PASSWORD environment variable is not set!');
+  }
   const users = [
-    { id: '1', email: 'admin@nocc.com', password: await bcrypt.hash(ADMIN_PASSWORD, 10), role: 'admin' }
+    { id: '1', email: 'admin@nocc.com', password: await bcrypt.hash(ADMIN_PASSWORD || 'admin123', 10), role: 'admin' }
   ];
 
   // --- Auth Routes ---
@@ -54,12 +60,6 @@ async function startServer() {
     const token = authHeader && authHeader.split(' ')[1];
     
     if (!token) return res.sendStatus(401);
-
-    // For demo purposes, we can allow 'demo-token' but let's stick to real JWTs
-    if (token === 'demo-token') {
-      req.user = { id: 'demo', role: 'admin' };
-      return next();
-    }
 
     jwt.verify(token, FINAL_JWT_SECRET, (err: any, user: any) => {
       if (err) return res.sendStatus(403);
