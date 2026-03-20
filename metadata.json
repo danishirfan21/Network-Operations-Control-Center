@@ -1,0 +1,5 @@
+{
+  "name": "Network Operations Control Center",
+  "description": "An enterprise-level system for monitoring and automating network devices with real-time metrics and secure command execution.",
+  "requestFramePermissions": []
+}

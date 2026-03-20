@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: devices
+    // Fields: name, ip, type, status, vendor, lastSeen, ownerId
+    //
+    // Collection: logs
+    // Fields: deviceId, message, severity, timestamp, type
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+
+    function isValidDevice(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.ip is string && data.ip.size() > 0 &&
+             data.type in ['router', 'switch', 'firewall'] &&
+             data.ownerId == request.auth.uid;
+    }
+
+    match /devices/{deviceId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidDevice(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(resource.data.ownerId) && isValidDevice(request.resource.data);
+      allow delete: if isAuthenticated() && isOwner(resource.data.ownerId);
+    }
+
+    match /logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+    
+    match /test/{docId} {
+      allow read: if true;
+    }
+  }
+}

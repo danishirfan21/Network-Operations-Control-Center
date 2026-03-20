@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Device": {
+      "title": "Network Device",
+      "description": "A router, switch, or other network appliance.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Device hostname" },
+        "ip": { "type": "string", "description": "Management IP address" },
+        "type": { "type": "string", "enum": ["router", "switch", "firewall"], "description": "Device type" },
+        "status": { "type": "string", "enum": ["online", "offline", "maintenance"], "description": "Current status" },
+        "vendor": { "type": "string", "description": "Hardware vendor (e.g., Cisco, Juniper)" },
+        "lastSeen": { "type": "string", "format": "date-time", "description": "Last heartbeat timestamp" },
+        "ownerId": { "type": "string", "description": "UID of the user who added the device" }
+      },
+      "required": ["name", "ip", "type", "ownerId"]
+    },
+    "Log": {
+      "title": "System Log",
+      "description": "Network event or automation log.",
+      "type": "object",
+      "properties": {
+        "deviceId": { "type": "string", "description": "ID of the related device" },
+        "message": { "type": "string", "description": "Log message" },
+        "severity": { "type": "string", "enum": ["info", "warning", "error", "critical"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "description": "Log type (automation, monitoring, system)" }
+      },
+      "required": ["message", "timestamp", "type"]
+    }
+  },
+  "firestore": {
+    "/devices/{deviceId}": {
+      "schema": "Device",
+      "description": "Collection of network devices"
+    },
+    "/logs/{logId}": {
+      "schema": "Log",
+      "description": "System and automation logs"
+    }
+  }
+}
