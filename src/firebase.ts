@@ -2,23 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 
-// Prioritize environment variables for security. 
-// These should be set in AI Studio Settings -> Secrets.
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-  firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID
-};
+// Import the Firebase configuration
+import firebaseConfig from '../firebase-applet-config.json';
 
-// Check if config is missing
-if (!firebaseConfig.apiKey) {
-  console.warn("Firebase API Key is missing. Please set FIREBASE_API_KEY in AI Studio Secrets.");
-}
-
+// Initialize Firebase SDK
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
 export const auth = getAuth(app);
@@ -27,9 +14,16 @@ export const auth = getAuth(app);
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connection successful.");
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+    if (error instanceof Error) {
+      if (error.message.includes('the client is offline') || error.message.includes('unavailable')) {
+        console.error("Firestore is unavailable. Please check your FIREBASE_PROJECT_ID and FIREBASE_API_KEY in AI Studio Secrets. Also, ensure Firestore is enabled in your Firebase Console.");
+      } else if (error.message.includes('permission-denied')) {
+        console.error("Firestore permission denied. Please check your firestore.rules.");
+      } else {
+        console.error("Firestore connection error:", error.message);
+      }
     }
   }
 }
